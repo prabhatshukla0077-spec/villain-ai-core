@@ -1,11 +1,12 @@
 import os
 import requests
+import time
 from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__, template_folder='templates')
 
-# This is a much smarter Conversational Brain (Mistral)
-TEXT_API = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-v0.1"
+# This is the Smart Instruct Brain (Better at comparing things)
+TEXT_API = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
 
 @app.route('/')
 def home():
@@ -16,27 +17,29 @@ def chat():
     data = request.json
     user_message = data.get("message", "")
     
-    # The instructions for the AI's personality
-    prompt = f"<s>[INST] You are VillainAI. Answer this question correctly but with a short villainous insult at the end: {user_message} [/INST]"
+    # We give the AI a clear instruction to be a Villain
+    prompt = f"<s>[INST] You are VillainAI. Answer the following question accurately but end with a short villainous insult: {user_message} [/INST]"
 
     try:
-        # Send your question to the free smart brain
-        response = requests.post(TEXT_API, json={"inputs": prompt})
+        # Requesting the answer from the free brain
+        response = requests.post(TEXT_API, json={"inputs": prompt, "parameters": {"max_new_tokens": 250}})
         result = response.json()
         
-        # Get the text answer
+        # Extracting only the AI's new answer
         if isinstance(result, list) and len(result) > 0:
-            ai_reply = result[0].get('generated_text', '').split('[/INST]')[-1].strip()
+            full_text = result[0].get('generated_text', '')
+            # This splits the text to only show the answer, not the prompt
+            ai_reply = full_text.split('[/INST]')[-1].strip()
         else:
-            ai_reply = "My neural processors are rebooting. Try again, worm."
+            ai_reply = "My neural processors are loading. Ask again in a moment, human."
 
-        # Clean up any messy stars/markdown
+        # Clean up formatting
         ai_reply = ai_reply.replace('**', '').replace('*', '')
 
         return jsonify({"response": ai_reply})
 
     except Exception as e:
-        return jsonify({"response": "😈 Connection lost to the dark dimension. Refresh the page."})
+        return jsonify({"response": "😈 My dark energy is fluctuating. Refresh and try again."})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
