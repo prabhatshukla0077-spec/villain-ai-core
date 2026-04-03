@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
 
 # Grab the key from the Render Vault
-api_key = os.environ.getsk-or-v1-e3c140b64391b75dc9bed7c80488a6ed6ee01784551009f479dd5db97151b451
+api_key = os.environ.get("OPENROUTER_API_KEY") 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
 
 # Connect to OpenRouter
 client = OpenAI(
