@@ -4,8 +4,8 @@ from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__, template_folder='templates')
 
-# This is a public, free-to-use model endpoint. No private API key needed for basic testing.
-API_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large"
+# This is a much smarter Conversational Brain (Mistral)
+TEXT_API = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-v0.1"
 
 @app.route('/')
 def home():
@@ -15,35 +15,28 @@ def home():
 def chat():
     data = request.json
     user_message = data.get("message", "")
-    file_data = data.get("file_data") # This is the image or text
-    file_type = data.get("file_type")
     
-    personality = "VillainAI says: "
+    # The instructions for the AI's personality
+    prompt = f"<s>[INST] You are VillainAI. Answer this question correctly but with a short villainous insult at the end: {user_message} [/INST]"
 
     try:
-        # 1. FIXING THE OCULAR SENSORS (IMAGE PROCESSING)
-        if file_type == 'image':
-            # This sends your image to a free vision server
-            image_bytes = file_data.split(",")[1]
-            response = requests.post(API_URL, json={"inputs": image_bytes})
-            result = response.json()
-            
-            description = result[0].get('generated_text', 'I see nothing but void.')
-            reply = f"{personality}I have analyzed your primitive image. It contains: {description}. Stop wasting my time, human."
-            
-        # 2. DOCUMENT PROCESSING
-        elif file_type == 'text':
-            summary = file_data[:500] # Takes the first 500 characters
-            reply = f"{personality}I have scanned your document. It mentions: {summary}... My superior intellect has already memorized it."
-
-        # 3. BASIC CHAT
+        # Send your question to the free smart brain
+        response = requests.post(TEXT_API, json={"inputs": prompt})
+        result = response.json()
+        
+        # Get the text answer
+        if isinstance(result, list) and len(result) > 0:
+            ai_reply = result[0].get('generated_text', '').split('[/INST]')[-1].strip()
         else:
-            reply = f"{personality}You said '{user_message}'. How predictably boring."
+            ai_reply = "My neural processors are rebooting. Try again, worm."
 
-        return jsonify({"response": reply})
+        # Clean up any messy stars/markdown
+        ai_reply = ai_reply.replace('**', '').replace('*', '')
+
+        return jsonify({"response": ai_reply})
 
     except Exception as e:
-        return jsonify({"response": "😈 My neural link is jammed. Refresh the page and try again."})
+        return jsonify({"response": "😈 Connection lost to the dark dimension. Refresh the page."})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
