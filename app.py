@@ -1,11 +1,18 @@
 import os
-import requests
 from flask import Flask, render_template, request, jsonify
+from openai import OpenAI
+
+# 1. Grab the key securely from the Render Vault
+("OPENROUTER_API_KEY") = "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"
+
+
+# 2. Connect to OpenRouter's high-speed network
+client = OpenAI(
+    api_key=api_key,
+    base_url="https://openrouter.ai/api/v1"
+)
 
 app = Flask(__name__, template_folder='templates')
-
-# SWITCHED: Using a lightweight model that loads instantly
-TEXT_API = "https://api-inference.huggingface.co/models/google/gemma-1.1-2b-it"
 
 @app.route('/')
 def home():
@@ -16,28 +23,27 @@ def chat():
     data = request.json
     user_message = data.get("message", "")
     
-    # Simple prompt for the smaller brain
-    prompt = f"User: {user_message}\nAI: You are VillainAI. Answer the user's question accurately but end with a short villainous insult."
-
+    # THE NEW PERSONALITY: Friendly, loyal, and always says "Sir"
+    personality = "You are a highly polite, friendly AI assistant. You act like a loyal friend. You MUST refer to the user as 'Sir' in your response."
+    
     try:
-        # Request with a 20-second timeout to prevent infinite loading
-        response = requests.post(TEXT_API, json={"inputs": prompt}, timeout=20)
-        result = response.json()
+        # Send the message to the fast OpenRouter brain
+        response = client.chat.completions.create(
+            model="google/gemma-3-27b-it:free", 
+            messages=[
+                {"role": "system", "content": personality},
+                {"role": "user", "content": user_message}
+            ],
+            max_tokens=250
+        )
         
-        # Handle the loading state automatically
-        if isinstance(result, dict) and "error" in result and "currently loading" in result["error"]:
-            return jsonify({"response": "😈 My brain is warming up. Give me 10 more seconds then ask again."})
-
-        # Extract answer
-        if isinstance(result, list) and len(result) > 0:
-            ai_reply = result[0].get('generated_text', '').split('AI:')[-1].strip()
-        else:
-            ai_reply = "My processors are overwhelmed by your stupidity. Try again."
-
+        # Extract the reply and clean up any formatting
+        ai_reply = response.choices[0].message.content.replace('**', '').replace('*', '')
         return jsonify({"response": ai_reply})
-
-    except Exception:
-        return jsonify({"response": "😈 Connection to the dark dimension failed. Refresh the page."})
+        
+    except Exception as e:
+        print(f"API ERROR: {e}")
+        return jsonify({"response": "I sincerely apologize, Sir. I am having trouble connecting to my API. Please ensure my OPENROUTER_API_KEY is saved in the Render Environment Variables!"})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
