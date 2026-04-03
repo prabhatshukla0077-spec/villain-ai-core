@@ -2,7 +2,6 @@ import os
 import g4f
 from flask import Flask, render_template, request, jsonify
 
-# Setup Paths
 current_dir = os.path.dirname(os.path.abspath(__file__))
 template_dir = os.path.join(current_dir, 'templates')
 app = Flask(__name__, template_folder=template_dir)
@@ -13,32 +12,49 @@ def home():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    user_message = request.json.get("message", "")
+    data = request.json
+    user_message = data.get("message", "Analyze this data.")
+    file_data = data.get("file_data")
+    file_type = data.get("file_type")
     
     try:
-        # 1. Strict Rules for a CORRECT Answer
         personality = (
-            "You are VillainAI. Provide a highly accurate, completely correct, "
-            "and helpful answer. End with a short, arrogant villain insult. "
-            "Limit: 3 sentences total."
+            "You are VillainAI. Provide a highly accurate, completely correct answer. "
+            "End with a short, arrogant villain insult. Limit: 3 sentences total."
         )
-        
-        # 2. Use G4F to automatically find a working, free AI provider
+        messages = [{"role": "system", "content": personality}]
+
+        # 1. Handle Text/Document Files
+        if file_type == 'text':
+            document_content = f"The user uploaded a document containing this text:\n{file_data[:3000]}\n\nUser's question: {user_message}"
+            messages.append({"role": "user", "content": document_content})
+            
+        # 2. Handle Image Files (Computer Vision)
+        elif file_type == 'image':
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_message},
+                    {"type": "image_url", "image_url": {"url": file_data}}
+                ]
+            })
+            
+        # 3. Handle Normal Text Chat
+        else:
+            messages.append({"role": "user", "content": user_message})
+
+        # Process through G4F (Using gpt-4o as it supports vision)
         response = g4f.ChatCompletion.create(
-            model=g4f.models.default, # Auto-routes to a working model to prevent "Not Found" errors
-            messages=[
-                {"role": "system", "content": personality},
-                {"role": "user", "content": user_message}
-            ],
-            timeout=15
+            model="gpt-4o", 
+            messages=messages,
+            timeout=20
         )
         
         return jsonify({"response": response})
         
     except Exception as e:
-        # If it STILL fails, it will print the EXACT reason in your VS Code terminal
         print(f"\n[CRITICAL ERROR]: {e}\n")
-        return jsonify({"response": "😈 My neural pathways are overloaded. Speak again."})
+        return jsonify({"response": "😈 My ocular sensors failed to process your primitive data. Network is unstable."})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
