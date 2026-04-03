@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚔️ VillainAI | Live Voice Command</title>
+    <title>⚔️ VillainAI | V3.0 Vision Mainframe</title>
     <style>
         :root { --glow: #ff0000; --bg: #050000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: white; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
@@ -27,10 +27,10 @@
         .prompt { color: var(--glow); font-size: 1.5rem; font-weight: bold; margin: 0 10px; align-self: center; }
         input { flex: 1; background: transparent; border: none; color: white; font-size: 1.2rem; outline: none; font-family: 'Courier New', Courier, monospace; }
         
-        button { background: var(--glow); color: black; border: none; padding: 12px 25px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 1rem; transition: 0.2s; }
+        button { background: var(--glow); color: black; border: none; padding: 12px 20px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 1rem; transition: 0.2s; }
         button:hover { background: white; color: red; box-shadow: 0 0 15px white; }
         
-        #mic-btn { background: #330000; color: white; border: 1px solid #ff0000; width: 180px; }
+        #mic-btn, #file-btn { background: #330000; color: white; border: 1px solid #ff0000; }
         #mic-btn.active { background: #ff0000; color: black; box-shadow: 0 0 20px #ff0000; animation: pulse 1s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
@@ -51,16 +51,20 @@
         
         <div id="main-terminal">
             <h1>VILLAIN AI</h1>
-            <div class="subtitle">LIVE CONVERSATION MODE AVAILABLE</div>
+            <div class="subtitle">VISION & DATA SYSTEMS ONLINE</div>
             
             <div id="chat-container">
                 <div class="input-area">
                     <span class="prompt">>></span>
-                    <input type="text" id="chatInput" placeholder="TYPE OR USE LIVE VOICE..." onkeypress="if(event.key=='Enter')sendMessage()">
-                    <button id="mic-btn" onclick="toggleLiveVoice()">🎤 START VOICE</button>
-                    <button onclick="sendMessage(document.getElementById('chatInput').value)">EXECUTE</button>
+                    <input type="text" id="chatInput" placeholder="AWAITING DATA UPLINK..." onkeypress="if(event.key=='Enter')sendMessage()">
+                    
+                    <input type="file" id="fileInput" style="display: none;" accept=".txt,.csv,.png,.jpg,.jpeg">
+                    
+                    <button id="file-btn" onclick="document.getElementById('fileInput').click()" title="Upload Image or Document">📁 UPLINK</button>
+                    <button id="mic-btn" onclick="toggleLiveVoice()">🎤 VOICE</button>
+                    <button onclick="sendMessage()">EXECUTE</button>
                 </div>
-                <div id="response">SYSTEM READY.<span class="cursor"></span></div>
+                <div id="response">SENSORS READY.<span class="cursor"></span></div>
             </div>
         </div>
     </div>
@@ -69,6 +73,34 @@
         let chatHistory = JSON.parse(localStorage.getItem('villain_logs')) || [];
         const responseBox = document.getElementById("response");
         
+        // --- DATA SCANNER SYSTEM (FILE/IMAGE UPLOAD) ---
+        let currentFileData = null;
+        let currentFileType = null;
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            const inputField = document.getElementById("chatInput");
+            inputField.placeholder = `[DATA LOADED]: ${file.name} - Enter command...`;
+
+            if (file.type.startsWith('image/')) {
+                reader.onload = function(event) {
+                    currentFileData = event.target.result; 
+                    currentFileType = 'image';
+                };
+                reader.readAsDataURL(file); // Converts image to Base64 code
+            } else {
+                reader.onload = function(event) {
+                    currentFileData = event.target.result; 
+                    currentFileType = 'text';
+                };
+                reader.readAsText(file); // Reads text inside documents
+            }
+        });
+
+        // --- SIDEBAR MEMORY ---
         function updateSidebar() {
             const list = document.getElementById("history-list");
             list.innerHTML = "";
@@ -81,61 +113,45 @@
         }
         updateSidebar();
 
-        // --- UPGRADED REAL-TIME VOICE SYSTEM ---
+        // --- LIVE VOICE SYSTEM ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = SpeechRecognition ? new SpeechRecognition() : null;
         let isLiveVoiceActive = false;
 
         if (recognition) {
             recognition.continuous = true;
-            recognition.interimResults = true; // THIS ALLOWS YOU TO SEE WORDS AS YOU SPEAK
+            recognition.interimResults = true; 
             
             recognition.onresult = (e) => {
                 let interimTranscript = '';
                 let finalTranscript = '';
 
                 for (let i = e.resultIndex; i < e.results.length; ++i) {
-                    if (e.results[i].isFinal) {
-                        finalTranscript += e.results[i][0].transcript;
-                    } else {
-                        interimTranscript += e.results[i][0].transcript;
-                    }
+                    if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript;
+                    else interimTranscript += e.results[i][0].transcript;
                 }
                 
-                // Show words typing in real time
                 document.getElementById("chatInput").value = finalTranscript || interimTranscript;
-
-                // Only send to AI when you completely stop a sentence
-                if (finalTranscript) {
-                    sendMessage(finalTranscript);
-                }
-            };
-
-            recognition.onerror = (e) => {
-                document.getElementById("chatInput").value = "MIC ERROR: " + e.error;
-                toggleLiveVoice(); // Turn off mic button if error
+                if (finalTranscript) sendMessage(finalTranscript);
             };
         }
 
         function toggleLiveVoice() {
             if (!recognition) return alert("Browser does not support Voice. Use Chrome.");
-            
             isLiveVoiceActive = !isLiveVoiceActive;
             const btn = document.getElementById("mic-btn");
             const inputField = document.getElementById("chatInput");
 
             if (isLiveVoiceActive) {
                 btn.classList.add("active");
-                btn.innerHTML = "🛑 STOP VOICE";
-                inputField.placeholder = "LISTENING... SPEAK NOW.";
-                window.speechSynthesis.cancel();
+                btn.innerHTML = "🛑 STOP";
+                inputField.placeholder = "LISTENING...";
                 try { recognition.start(); } catch(e) {}
             } else {
                 btn.classList.remove("active");
-                btn.innerHTML = "🎤 START VOICE";
-                inputField.placeholder = "TYPE OR USE LIVE VOICE...";
+                btn.innerHTML = "🎤 VOICE";
+                inputField.placeholder = "AWAITING DATA UPLINK...";
                 try { recognition.stop(); } catch(e) {}
-                window.speechSynthesis.cancel();
             }
         }
 
@@ -152,24 +168,37 @@
         async function sendMessage(textInput) {
             const inputField = document.getElementById("chatInput");
             const text = textInput || inputField.value.trim();
-            if (!text) return;
+            if (!text && !currentFileData) return; // Must have text OR a file
             
             inputField.value = "";
+            inputField.placeholder = "AWAITING DATA UPLINK...";
             if(isLiveVoiceActive) try{ recognition.stop(); }catch(e){} 
             
-            responseBox.innerHTML = "<span style='color:red;'>PROCESSING LOGIC...</span><span class='cursor'></span>";
+            responseBox.innerHTML = "<span style='color:red;'>SCANNING DATA & PROCESSING LOGIC...</span><span class='cursor'></span>";
+
+            // Prepare Payload
+            const payload = { 
+                message: text, 
+                file_data: currentFileData, 
+                file_type: currentFileType 
+            };
 
             try {
                 const res = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text })
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json();
                 const aiAnswer = data.response;
                 
-                // Save Memory
-                chatHistory.push({user: text, ai: aiAnswer});
+                // Clear File Memory after sending
+                currentFileData = null;
+                currentFileType = null;
+                document.getElementById("fileInput").value = ""; 
+
+                // Save to Visual History
+                chatHistory.push({user: text || "[FILE UPLOADED]", ai: aiAnswer});
                 if(chatHistory.length > 10) chatHistory.shift();
                 localStorage.setItem('villain_logs', JSON.stringify(chatHistory));
                 updateSidebar();
@@ -179,13 +208,8 @@
                 // Speak Out Loud
                 window.speechSynthesis.cancel(); 
                 const speech = new SpeechSynthesisUtterance(aiAnswer);
-                speech.pitch = 0.2; 
-                speech.rate = 0.9;
-                
-                speech.onend = () => {
-                    if (isLiveVoiceActive) try{ recognition.start(); }catch(e){}
-                };
-                
+                speech.pitch = 0.2; speech.rate = 0.9;
+                speech.onend = () => { if (isLiveVoiceActive) try{ recognition.start(); }catch(e){} };
                 window.speechSynthesis.speak(speech);
 
             } catch (err) {
@@ -194,26 +218,21 @@
             }
         }
 
-        // --- FULL-SCREEN MATRIX EFFECT ---
+        // --- MATRIX BACKGROUND ---
         const canvas = document.getElementById('matrix');
         const ctx = canvas.getContext('2d');
         let fontSize = 16, columns, drops;
 
         function initMatrix() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            columns = Math.ceil(canvas.width / fontSize);
-            drops = [];
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            columns = Math.ceil(canvas.width / fontSize); drops = [];
             for (let x = 0; x < columns; x++) drops[x] = Math.random() * -50;
         }
-        initMatrix();
-        window.addEventListener('resize', initMatrix);
+        initMatrix(); window.addEventListener('resize', initMatrix);
 
         function drawMatrix() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#cc0000'; 
-            ctx.font = fontSize + 'px monospace';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#cc0000'; ctx.font = fontSize + 'px monospace';
             for (let i = 0; i < drops.length; i++) {
                 const text = String.fromCharCode(Math.floor(Math.random() * 94) + 33);
                 ctx.fillText(text, i * fontSize, drops[i] * fontSize);
