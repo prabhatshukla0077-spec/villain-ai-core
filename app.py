@@ -1,15 +1,6 @@
 import os
+import ollama
 from flask import Flask, render_template, request, jsonify
-from openai import OpenAI
-
-# Grab the key from the Render Vault
-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 = os.environ.get("OPENROUTER_API_KEY")
-
-# Connect to OpenRouter
-client = OpenAI(
-    api_key=api_key,
-    base_url="https://openrouter.ai/api/v1" 
-)
 
 app = Flask(__name__, template_folder='templates')
 
@@ -20,45 +11,50 @@ def home():
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.json
-    user_message = data.get("message", "Analyze this data.")
+    user_message = data.get("message", "Analyze this.")
     file_data = data.get("file_data")
     file_type = data.get("file_type")
     
-    personality = "You are VillainAI. Give a correct answer. End with a short, arrogant insult. Limit to 3 sentences total."
-    messages = [{"role": "system", "content": personality}]
-
+    personality = "You are VillainAI. Answer correctly. End with an arrogant insult. Limit to 3 sentences."
+    
     try:
-        # 1. PROCESS TEXT DOCUMENTS
-        if file_type == 'text':
-            messages.append({"role": "user", "content": f"Document text:\n{file_data[:5000]}\n\nCommand: {user_message}"})
+        # 1. PROCESS IMAGES (Using Local Llama Vision)
+        if file_type == 'image':
+            # Remove the HTML header from the image data
+            clean_base64 = file_data.split(',')[1] 
             
-        # 2. PROCESS IMAGES (Using Free Gemma Vision)
-        elif file_type == 'image':
-            messages.append({
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": user_message},
-                    {"type": "image_url", "image_url": {"url": file_data}}
-                ]
-            })
+            response = ollama.chat(
+                model='llama3.2-vision',
+                messages=[{
+                    'role': 'user',
+                    'content': f"{personality}\n\nUser: {user_message}",
+                    'images': [clean_base64]
+                }]
+            )
+            
+        # 2. PROCESS TEXT DOCUMENTS
+        elif file_type == 'text':
+            doc_prompt = f"{personality}\n\nDocument text:\n{file_data[:3000]}\n\nUser: {user_message}"
+            response = ollama.chat(
+                model='llama3.2-vision',
+                messages=[{'role': 'user', 'content': doc_prompt}]
+            )
             
         # 3. NORMAL CHAT
         else:
-            messages.append({"role": "user", "content": user_message})
+            prompt = f"{personality}\n\nUser: {user_message}"
+            response = ollama.chat(
+                model='llama3.2-vision',
+                messages=[{'role': 'user', 'content': prompt}]
+            )
 
-        response = client.chat.completions.create(
-            model="google/gemma-3-27b-it:free", 
-            messages=messages,
-            max_tokens=250
-        )
-        
-        ai_reply = response.choices[0].message.content.replace('**', '').replace('*', '')
+        ai_reply = response['message']['content'].replace('**', '').replace('*', '')
         return jsonify({"response": ai_reply})
         
     except Exception as e:
         print(f"ERROR: {e}")
-        return jsonify({"response": "😈 My OpenRouter connection failed. Did you put OPENROUTER_API_KEY in the Render vault?"})
+        return jsonify({"response": "😈 My local brain failed to boot. Is Ollama running on your machine?"})
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # Running strictly on your local machine
+    app.run(host='127.0.0.1', port=5000, debug=True)
