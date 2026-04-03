@@ -2,13 +2,13 @@ import os
 from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
 
-# Securely grab the API key from Render's vault
-api_key = os.environ.get("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")
+# Grab the key from the Render Vault
+api_key = os.environ.get("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")
 
-# Initialize the DeepSeek client
+# Connect to OpenRouter
 client = OpenAI(
     api_key=api_key,
-    base_url="https://api.deepseek.com" # CHANGE TO: "https://openrouter.ai/api/v1" if using OpenRouter
+    base_url="https://openrouter.ai/api/v1" 
 )
 
 app = Flask(__name__, template_folder='templates')
@@ -24,44 +24,40 @@ def chat():
     file_data = data.get("file_data")
     file_type = data.get("file_type")
     
-    personality = (
-        "You are VillainAI. Provide a highly accurate, completely correct answer. "
-        "End your response with a short, arrogant, villainous insult about humans. Limit to 3 sentences total."
-    )
-    
+    personality = "You are VillainAI. Give a correct answer. End with a short, arrogant insult. Limit to 3 sentences total."
     messages = [{"role": "system", "content": personality}]
 
     try:
         # 1. PROCESS TEXT DOCUMENTS
         if file_type == 'text':
-            doc_prompt = f"The user uploaded a document with this text:\n{file_data[:5000]}\n\nUser Command: {user_message}"
-            messages.append({"role": "user", "content": doc_prompt})
+            messages.append({"role": "user", "content": f"Document text:\n{file_data[:5000]}\n\nCommand: {user_message}"})
             
-        # 2. PROCESS IMAGES (DeepSeek cannot see images)
+        # 2. PROCESS IMAGES (Using Free Gemma Vision)
         elif file_type == 'image':
-            return jsonify({"response": "😈 My new DeepSeek neural cortex is built for pure logic, not primitive human picture books. Upload text documents only."})
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_message},
+                    {"type": "image_url", "image_url": {"url": file_data}}
+                ]
+            })
             
-        # 3. NORMAL CHAT & VOICE
+        # 3. NORMAL CHAT
         else:
             messages.append({"role": "user", "content": user_message})
 
-        # Process through DeepSeek API
         response = client.chat.completions.create(
-            model="deepseek-chat", # CHANGE TO: "deepseek/deepseek-chat" if using OpenRouter
+            model="google/gemma-3-27b-it:free", 
             messages=messages,
             max_tokens=250
         )
         
-        ai_reply = response.choices[0].message.content
-
-        # Clean up any Markdown formatting
-        ai_reply = ai_reply.replace('**', '').replace('*', '')
-
+        ai_reply = response.choices[0].message.content.replace('**', '').replace('*', '')
         return jsonify({"response": ai_reply})
         
     except Exception as e:
-        print(f"\n[CRITICAL ERROR]: {e}\n")
-        return jsonify({"response": "😈 Critical failure. Did you forget to put the DeepSeek API key in the Render vault?"})
+        print(f"ERROR: {e}")
+        return jsonify({"response": "😈 My OpenRouter connection failed. Did you put OPENROUTER_API_KEY in the Render vault?"})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
