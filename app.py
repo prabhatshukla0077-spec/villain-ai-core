@@ -4,10 +4,9 @@ from openai import OpenAI
 
 app = Flask(__name__, template_folder='templates')
 
-# Grab your secure key from the Render Vault
+# Securely grab the API key from Render
 api_key = os.environ.get("OPENROUTER_API_KEY")
 
-# Connect to OpenRouter's high-speed network
 try:
     client = OpenAI(
         api_key=api_key,
@@ -25,25 +24,22 @@ def chat():
     data = request.json
     user_message = data.get("message", "")
     
-    # Failsafe: If Render can't find your key
     if not client or not api_key:
         return jsonify({"response": "Sir, my systems are disconnected. Please ensure my OPENROUTER_API_KEY is securely stored in the Render Environment Variables."})
 
-    # THE JARVIS DIRECTIVE
-    system_prompt = "You are J.A.R.V.I.S., a highly intelligent, polite, and efficient AI assistant. You act as a loyal system to your creator. Always address the user as 'Sir' or 'Mr. Prabhat'. Keep your answers clear, professional, and highly capable."
+    # THE J.A.R.V.I.S. DIRECTIVE
+    system_prompt = "You are J.A.R.V.I.S., a highly advanced AI system created to assist Mr. Prabhat. You are polite, highly efficient, and always address him as 'Sir' or 'Mr. Prabhat'. Keep your answers clear, professional, and conversational. Do not use markdown formatting like asterisks or bold text, as your responses will be read out loud by a voice synthesizer."
 
     try:
-        # Requesting the answer from a fast, reliable model
         response = client.chat.completions.create(
             model="google/gemma-3-27b-it:free", 
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            max_tokens=300
+            max_tokens=200
         )
         
-        # Clean up the text response
         ai_reply = response.choices[0].message.content.replace('**', '').replace('*', '')
         return jsonify({"response": ai_reply})
 
