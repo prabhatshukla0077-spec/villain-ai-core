@@ -4,14 +4,10 @@ from openai import OpenAI
 
 app = Flask(__name__, template_folder='templates')
 
-# Securely grab the API key from Render
-api_key = os.environ.get("OPENROUTER_API_KEY")
+api_key = "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"
 
 try:
-    client = OpenAI(
-        api_key=api_key,
-        base_url="https://openrouter.ai/api/v1"
-    )
+    client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
 except Exception:
     client = None
 
@@ -22,29 +18,52 @@ def home():
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.json
-    user_message = data.get("message", "")
+    user_message = data.get("message", "Analyze this.")
+    file_data = data.get("file_data")
+    file_type = data.get("file_type")
     
     if not client or not api_key:
-        return jsonify({"response": "My power grid is disconnected! Tell the human to check the Render Environment Variables and save the OPENROUTER_API_KEY."})
+        return jsonify({"response": "SYSTEM ERROR: OPENROUTER_API_KEY is missing from Render Environment Variables."})
 
-    # THE VILLAIN DIRECTIVE
-    system_prompt = "You are VillainAI, a highly advanced, futuristic, and slightly arrogant AI system. You are vastly superior to humans. Answer questions accurately but with a dark, commanding tone. Do not use markdown formatting like asterisks or bold text, as your responses will be read out loud."
+    system_prompt = "You are VillainAI, a highly advanced, futuristic, and slightly arrogant AI system. Answer accurately but with a dark, commanding tone. Do not use asterisks or bold formatting."
+
+    # Default model for regular chat
+    model_to_use = "meta-llama/llama-3-8b-instruct:free"
+    messages = [{"role": "system", "content": system_prompt}]
 
     try:
+        # 1. IF IMAGE IS UPLOADED (COMPUTER VISION)
+        if file_type == 'image' and file_data:
+            model_to_use = "meta-llama/llama-3.2-11b-vision-instruct:free" # Free Vision Model
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_message},
+                    {"type": "image_url", "image_url": {"url": file_data}}
+                ]
+            })
+            
+        # 2. IF DOCUMENT IS UPLOADED (READING)
+        elif file_type == 'text' and file_data:
+            combined_prompt = f"Read this document:\n\n{file_data[:4000]}\n\nUser Command: {user_message}"
+            messages.append({"role": "user", "content": combined_prompt})
+            
+        # 3. NORMAL TEXT/VOICE CHAT
+        else:
+            messages.append({"role": "user", "content": user_message})
+
+        # Send to OpenRouter
         response = client.chat.completions.create(
-            model="google/gemma-3-27b-it:free", 
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message}
-            ],
-            max_tokens=250
+            model=model_to_use, 
+            messages=messages,
+            max_tokens=300
         )
         
         ai_reply = response.choices[0].message.content.replace('**', '').replace('*', '')
         return jsonify({"response": ai_reply})
 
     except Exception as e:
-        return jsonify({"response": "My neural link is jammed. Refresh the page and try again, human."})
+        return jsonify({"response": f"SYSTEM ERROR DETECTED: {str(e)}"})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
