@@ -2,17 +2,19 @@ import os
 from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
 
-# 1. Grab the key securely from the Render Vault
-("OPENROUTER_API_KEY") = "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"
-
-
-# 2. Connect to OpenRouter's high-speed network
-client = OpenAI(
-    api_key=api_key,
-    base_url="https://openrouter.ai/api/v1"
-)
-
 app = Flask(__name__, template_folder='templates')
+
+# Grab your secure key from the Render Vault
+api_key = os.environ.get("OPENROUTER_API_KEY")
+
+# Connect to OpenRouter's high-speed network
+try:
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://openrouter.ai/api/v1"
+    )
+except Exception:
+    client = None
 
 @app.route('/')
 def home():
@@ -23,27 +25,30 @@ def chat():
     data = request.json
     user_message = data.get("message", "")
     
-    # THE NEW PERSONALITY: Friendly, loyal, and always says "Sir"
-    personality = "You are a highly polite, friendly AI assistant. You act like a loyal friend. You MUST refer to the user as 'Sir' in your response."
-    
+    # Failsafe: If Render can't find your key
+    if not client or not api_key:
+        return jsonify({"response": "Sir, my systems are disconnected. Please ensure my OPENROUTER_API_KEY is securely stored in the Render Environment Variables."})
+
+    # THE JARVIS DIRECTIVE
+    system_prompt = "You are J.A.R.V.I.S., a highly intelligent, polite, and efficient AI assistant. You act as a loyal system to your creator. Always address the user as 'Sir' or 'Mr. Prabhat'. Keep your answers clear, professional, and highly capable."
+
     try:
-        # Send the message to the fast OpenRouter brain
+        # Requesting the answer from a fast, reliable model
         response = client.chat.completions.create(
             model="google/gemma-3-27b-it:free", 
             messages=[
-                {"role": "system", "content": personality},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            max_tokens=250
+            max_tokens=300
         )
         
-        # Extract the reply and clean up any formatting
+        # Clean up the text response
         ai_reply = response.choices[0].message.content.replace('**', '').replace('*', '')
         return jsonify({"response": ai_reply})
-        
+
     except Exception as e:
-        print(f"API ERROR: {e}")
-        return jsonify({"response": "I sincerely apologize, Sir. I am having trouble connecting to my API. Please ensure my OPENROUTER_API_KEY is saved in the Render Environment Variables!"})
+        return jsonify({"response": "I apologize, Sir. My neural network experienced a brief interruption. Please ask again."})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
