@@ -4,35 +4,34 @@ from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__, template_folder='templates')
 
-# ==========================================
-# 🚀 THE WATERFALL API SYSTEM
-# Replace 'YOUR_KEY_HERE' with your actual free API keys.
-# The system will try them in order top-to-bottom.
-# ==========================================
+# =====================================================================
+# 🌊 THE WATERFALL API PROTOCOL
+# The system will try Groq first (fastest). If it fails, it tries Gemini. 
+# If Gemini fails, it tries HuggingFace. It will never show an error.
+# =====================================================================
 APIS = [
     {
         "name": "Groq (Llama 3)",
         "url": "https://api.groq.com/openai/v1/chat/completions",
-        "key": "YOUR_GROQ_KEY_HERE", 
+        "key": "YOUR_GROQ_API_KEY_HERE", 
         "model": "llama3-8b-8192",
-        "format": "openai"
+        "type": "openai_format"
     },
     {
-        "name": "Google Gemini (Flash)",
+        "name": "Google Gemini (1.5 Flash)",
         "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
-        "key": "YOUR_GOOGLE_KEY_HERE",
-        "format": "gemini"
+        "key": "YOUR_GOOGLE_GEMINI_API_KEY_HERE",
+        "type": "gemini_format"
     },
     {
         "name": "HuggingFace (Mistral)",
         "url": "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
-        "key": "YOUR_HUGGINGFACE_KEY_HERE",
-        "format": "huggingface"
+        "key": "YOUR_HUGGINGFACE_API_KEY_HERE",
+        "type": "huggingface_format"
     }
 ]
 
-# --- SYSTEM PROMPT ---
-SYSTEM_INSTRUCTION = "You are Nexus, an advanced, highly intelligent AI assistant. Keep answers concise, clear, and modern."
+SYSTEM_PROMPT = "You are Villain AI, an incredibly advanced, slightly dark, and highly intelligent AI entity. Keep your answers concise, modern, and formatting clean. Do not use asterisks."
 
 @app.route('/')
 def home():
@@ -40,78 +39,74 @@ def home():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    user_message = request.json.get("message", "")
+    data = request.json
+    user_message = data.get("message", "").strip()
+    
     if not user_message:
-        return jsonify({"response": "Error: Empty message received."})
+        return jsonify({"response": "System requires input to process."})
 
-    # 🌊 The Waterfall Loop: Try each API until one works
+    # The Loop: Try each API one by one until a response is generated
     for api in APIS:
-        # Skip if the user hasn't added their key yet
+        # Skip if you haven't put a real key in yet
         if "YOUR_" in api["key"] or not api["key"]:
             continue
             
-        print(f"[*] Attempting to use brain: {api['name']}...")
-        
         try:
-            response_text = route_to_api(api, user_message)
-            if response_text:
-                print(f"[+] Success with {api['name']}!")
-                return jsonify({"response": response_text})
+            response = call_ai_brain(api, user_message)
+            if response:
+                return jsonify({"response": response, "model_used": api["name"]})
         except Exception as e:
-            print(f"[-] {api['name']} failed: {str(e)}")
-            continue # Try the next API in the list
-            
-    # If the loop finishes and nothing worked:
-    return jsonify({"response": "CRITICAL ERROR: All API connections failed or no valid keys were provided."})
+            print(f"[!] {api['name']} failed: {str(e)}. Falling back to next brain...")
+            continue # Triggers the fallback to the next API
 
+    # If every single API fails or keys are missing
+    return jsonify({"response": "CRITICAL: All neural networks are currently offline. Please check your API keys."})
 
-def route_to_api(api_config, message):
-    """Formats the request properly depending on which API is being called."""
+def call_ai_brain(api, message):
+    """Handles the different formats required by different AI companies."""
     headers = {'Content-Type': 'application/json'}
     
-    # 1. OPENAI FORMAT (Used by Groq, OpenAI, Together, etc)
-    if api_config["format"] == "openai":
-        headers['Authorization'] = f'Bearer {api_config["key"]}'
+    # --- GROQ FORMAT ---
+    if api["type"] == "openai_format":
+        headers['Authorization'] = f'Bearer {api["key"]}'
         payload = {
-            'model': api_config["model"],
+            'model': api["model"],
             'messages': [
-                {'role': 'system', 'content': SYSTEM_INSTRUCTION},
+                {'role': 'system', 'content': SYSTEM_PROMPT},
                 {'role': 'user', 'content': message}
             ],
             'max_tokens': 500
         }
-        res = requests.post(api_config["url"], headers=headers, json=payload, timeout=10)
+        res = requests.post(api["url"], headers=headers, json=payload, timeout=10)
         if res.status_code == 200:
-            return res.json()['choices'][0]['message']['content'].replace('**', '')
+            return res.json()['choices'][0]['message']['content'].replace('**', '').replace('*', '')
 
-    # 2. GOOGLE GEMINI FORMAT
-    elif api_config["format"] == "gemini":
-        url_with_key = f"{api_config['url']}?key={api_config['key']}"
+    # --- GOOGLE GEMINI FORMAT ---
+    elif api["type"] == "gemini_format":
+        url_with_key = f"{api['url']}?key={api['key']}"
         payload = {
-            'contents': [{'parts': [{'text': f"{SYSTEM_INSTRUCTION} User asks: {message}"}]}],
+            'contents': [{'parts': [{'text': f"{SYSTEM_PROMPT}\n\nUser: {message}"}]}],
             'generationConfig': {'maxOutputTokens': 500}
         }
         res = requests.post(url_with_key, headers=headers, json=payload, timeout=10)
         if res.status_code == 200:
-            return res.json()['candidates'][0]['content']['parts'][0]['text'].replace('**', '')
+            return res.json()['candidates'][0]['content']['parts'][0]['text'].replace('**', '').replace('*', '')
 
-    # 3. HUGGINGFACE FORMAT
-    elif api_config["format"] == "huggingface":
-        headers['Authorization'] = f'Bearer {api_config["key"]}'
+    # --- HUGGINGFACE FORMAT ---
+    elif api["type"] == "huggingface_format":
+        headers['Authorization'] = f'Bearer {api["key"]}'
         payload = {
-            'inputs': f"<s>[INST] {SYSTEM_INSTRUCTION} \n\n User: {message} [/INST]",
+            'inputs': f"<s>[INST] {SYSTEM_PROMPT} \n\n {message} [/INST]",
             'parameters': {'max_new_tokens': 500}
         }
-        res = requests.post(api_config["url"], headers=headers, json=payload, timeout=15)
+        res = requests.post(api["url"], headers=headers, json=payload, timeout=15)
         if res.status_code == 200:
             data = res.json()
             if isinstance(data, list):
                 return data[0].get('generated_text', '').split('[/INST]')[-1].strip().replace('**', '')
 
-    return None # Returns None if status code isn't 200, triggering the fallback loop
-
+    return None
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    # Turn debug=True while building to see errors, set to False when finished.
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port)
