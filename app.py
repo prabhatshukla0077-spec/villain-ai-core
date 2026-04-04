@@ -25,10 +25,10 @@ def chat():
     user_message = data.get("message", "")
     
     if not client or not api_key:
-        return jsonify({"response": "Sir, my systems are disconnected. Please ensure my OPENROUTER_API_KEY is securely stored in the Render Environment Variables."})
+        return jsonify({"response": "My power grid is disconnected! Tell the human to check the Render Environment Variables and save the OPENROUTER_API_KEY."})
 
-    # THE J.A.R.V.I.S. DIRECTIVE
-    system_prompt = "You are J.A.R.V.I.S., a highly advanced AI system created to assist Mr. Prabhat. You are polite, highly efficient, and always address him as 'Sir' or 'Mr. Prabhat'. Keep your answers clear, professional, and conversational. Do not use markdown formatting like asterisks or bold text, as your responses will be read out loud by a voice synthesizer."
+    # THE VILLAIN DIRECTIVE
+    system_prompt = "You are VillainAI, a highly advanced, futuristic, and slightly arrogant AI system. You are vastly superior to humans. Answer questions accurately but with a dark, commanding tone. Do not use markdown formatting like asterisks or bold text, as your responses will be read out loud."
 
     try:
         response = client.chat.completions.create(
@@ -37,14 +37,14 @@ def chat():
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            max_tokens=200
+            max_tokens=250
         )
         
         ai_reply = response.choices[0].message.content.replace('**', '').replace('*', '')
         return jsonify({"response": ai_reply})
 
     except Exception as e:
-        return jsonify({"response": "I apologize, Sir. My neural network experienced a brief interruption. Please ask again."})
+        return jsonify({"response": "My neural link is jammed. Refresh the page and try again, human."})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
