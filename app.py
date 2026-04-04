@@ -4,17 +4,14 @@ from openai import OpenAI
 
 app = Flask(__name__, template_folder='templates')
 
-# Your exact key is perfectly placed here
-api_key = "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"
+# Your exact Groq Key is perfectly placed here
+api_key = "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"
 
 try:
+    # Pointing perfectly to Groq's fast servers
     client = OpenAI(
         api_key=api_key, 
-        base_url="https://openrouter.ai/api/v1",
-        default_headers={
-            "HTTP-Referer": "https://villain-ai-prabhat.onrender.com",
-            "X-Title": "VillainAI"
-        }
+        base_url="https://api.groq.com/openai/v1"
     )
 except Exception:
     client = None
@@ -35,12 +32,13 @@ def chat():
 
     system_prompt = "You are VillainAI, a highly advanced, futuristic, and slightly arrogant AI system. Answer accurately but with a dark, commanding tone. Do not use asterisks or bold formatting."
 
-    model_to_use = "meta-llama/llama-3-8b-instruct:free"
+    # Using Groq's lightning-fast model
+    model_to_use = "llama3-8b-8192"
     messages = [{"role": "system", "content": system_prompt}]
 
     try:
         if file_type == 'image' and file_data:
-            model_to_use = "meta-llama/llama-3.2-11b-vision-instruct:free" 
+            model_to_use = "llama-3.2-11b-vision-preview" 
             messages.append({
                 "role": "user",
                 "content": [
@@ -66,7 +64,6 @@ def chat():
         return jsonify({"response": ai_reply})
 
     except Exception as e:
-        # This will print the EXACT reason it is failing to your screen
         return jsonify({"response": f"SYSTEM ERROR DETECTED: {str(e)}"})
 
 if __name__ == '__main__':
