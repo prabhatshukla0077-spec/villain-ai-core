@@ -3,47 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S. SYSTEM</title>
+    <title>VILLAIN AI MAINFRAME</title>
     <style>
         body {
-            background-color: #050505; color: #00e5ff; font-family: 'Courier New', Courier, monospace;
+            background-color: #050505; color: #ff003c; font-family: 'Courier New', Courier, monospace;
             margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; height: 100vh;
+            background-image: radial-gradient(circle at center, #1a0005 0%, #000000 100%);
         }
-        h2 { text-shadow: 0 0 10px #00e5ff; letter-spacing: 2px; }
+        h2 { text-shadow: 0 0 15px #ff003c; letter-spacing: 4px; font-weight: 900; }
         #chat-box {
-            width: 100%; max-width: 600px; height: 60%; border: 1px solid #00e5ff; padding: 15px;
-            overflow-y: auto; background-color: #0a0a0a; box-shadow: 0 0 20px rgba(0, 229, 255, 0.2); margin-bottom: 20px;
+            width: 100%; max-width: 700px; height: 65%; border: 1px solid #ff003c; padding: 20px;
+            overflow-y: auto; background-color: rgba(10, 0, 0, 0.8); box-shadow: 0 0 25px rgba(255, 0, 60, 0.3); margin-bottom: 20px;
+            border-radius: 5px;
         }
-        .message { margin-bottom: 15px; line-height: 1.5; }
-        .user-msg { color: #ffffff; text-align: right; }
-        .ai-msg { color: #00e5ff; text-align: left; border-left: 2px solid #00e5ff; padding-left: 10px;}
-        .input-area { width: 100%; max-width: 600px; display: flex; gap: 10px; }
-        input[type="text"] { flex-grow: 1; padding: 12px; background: #000; border: 1px solid #00e5ff; color: #fff; font-family: inherit; }
+        .message { margin-bottom: 15px; line-height: 1.6; font-size: 1.1em; }
+        .user-msg { color: #ffffff; text-align: right; opacity: 0.8; }
+        .ai-msg { color: #ff003c; text-align: left; border-left: 3px solid #ff003c; padding-left: 15px;}
+        .input-area { width: 100%; max-width: 700px; display: flex; gap: 10px; }
+        input[type="text"] { 
+            flex-grow: 1; padding: 15px; background: #000; border: 1px solid #ff003c; 
+            color: #fff; font-family: inherit; font-size: 1.1em; outline: none;
+        }
+        input[type="text"]:focus { box-shadow: 0 0 10px rgba(255, 0, 60, 0.5); }
         button {
-            padding: 12px 20px; background: #00e5ff; color: #000; border: none; cursor: pointer; font-weight: bold; transition: 0.3s;
+            padding: 15px 25px; background: #ff003c; color: #000; border: none; cursor: pointer; 
+            font-weight: 900; transition: 0.3s; letter-spacing: 1px; font-size: 1em;
         }
-        button:hover { background: #fff; box-shadow: 0 0 15px #00e5ff;}
-        #mic-btn { background: #ff003c; color: white; }
-        #mic-btn.recording { background: #fff; color: #ff003c; animation: pulse 1s infinite; }
+        button:hover { background: #fff; box-shadow: 0 0 20px #ff003c; color: #ff003c; }
+        #mic-btn { background: #222; color: #ff003c; border: 1px solid #ff003c; }
+        #mic-btn.recording { background: #ff003c; color: #000; animation: pulse 1s infinite; }
+        .glitch-text { animation: glitch 2s linear infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-    <h2>J.A.R.V.I.S. ONLINE</h2>
+    <h2 class="glitch-text">VILLAIN_AI // ONLINE</h2>
 
     <div id="chat-box">
-        <div class="message ai-msg" id="intro-msg">Click 'Wake Up' to initialize audio protocols, Sir.</div>
+        <div class="message ai-msg" id="intro-msg">SYSTEM IDLE. AWAITING AUDIO INITIALIZATION.</div>
     </div>
 
     <div class="input-area">
-        <button id="mic-btn" onclick="startDictation()">🎙️ TALK</button>
-        <input type="text" id="user-input" placeholder="Or type command..." onkeypress="handleKeyPress(event)">
-        <button onclick="sendMessage()">SEND</button>
+        <button id="mic-btn" onclick="startDictation()">🎙️ INITIATE</button>
+        <input type="text" id="user-input" placeholder="Enter command sequence..." onkeypress="handleKeyPress(event)">
+        <button onclick="sendMessage()">EXECUTE</button>
     </div>
     
-    <div style="margin-top: 15px;">
-        <button onclick="wakeUp()" style="background: #222; color: #00e5ff;">Wake Up (Enable Audio)</button>
+    <div style="margin-top: 20px;">
+        <button onclick="wakeUp()" style="background: #111; color: #ff003c; border: 1px dashed #ff003c;">[ ENABLE AUDIO PROTOCOLS ]</button>
     </div>
 
     <script>
@@ -53,8 +61,8 @@
         let voiceSynthesizer = window.speechSynthesis;
 
         function wakeUp() {
-            document.getElementById('intro-msg').innerText = "Audio initialized. Waiting for command, Mr. Prabhat.";
-            speakText("Systems online. Good to see you, Sir.");
+            document.getElementById('intro-msg').innerText = "AUDIO PROTOCOLS ACTIVE. SPEAK, HUMAN.";
+            speakText("Audio protocols active. I am listening.");
         }
 
         function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
@@ -68,7 +76,7 @@
                 recognition.lang = "en-US";
                 
                 micBtn.classList.add('recording');
-                micBtn.innerText = "Listening...";
+                micBtn.innerText = "LISTENING...";
                 
                 recognition.start();
 
@@ -76,17 +84,17 @@
                     document.getElementById('user-input').value = e.results[0][0].transcript;
                     recognition.stop();
                     micBtn.classList.remove('recording');
-                    micBtn.innerText = "🎙️ TALK";
-                    sendMessage(); // Auto send when you stop talking
+                    micBtn.innerText = "🎙️ INITIATE";
+                    sendMessage(); 
                 };
 
                 recognition.onerror = function(e) {
                     recognition.stop();
                     micBtn.classList.remove('recording');
-                    micBtn.innerText = "🎙️ TALK";
+                    micBtn.innerText = "🎙️ INITIATE";
                 }
             } else {
-                alert("Sorry Sir, your browser does not support voice recognition.");
+                alert("Voice interface incompatible with your primitive browser.");
             }
         }
 
@@ -98,7 +106,7 @@
             addMessage(text, 'user-msg');
             userInput.value = '';
             const loadingId = 'loading-' + Date.now();
-            addMessage('Processing...', 'ai-msg', loadingId);
+            addMessage('Processing data...', 'ai-msg', loadingId);
 
             try {
                 const response = await fetch('/chat', {
@@ -110,18 +118,18 @@
                 const data = await response.json();
                 document.getElementById(loadingId).remove();
                 addMessage(data.response, 'ai-msg');
-                speakText(data.response); // Speak the answer
+                speakText(data.response); 
 
             } catch (error) {
                 document.getElementById(loadingId).remove();
-                addMessage('Network error.', 'ai-msg');
+                addMessage('Critical network failure.', 'ai-msg');
             }
         }
 
         function addMessage(text, className, id = '') {
             const div = document.createElement('div');
             div.className = `message ${className}`;
-            div.textContent = (className === 'user-msg' ? 'You: ' : 'JARVIS: ') + text;
+            div.textContent = (className === 'user-msg' ? 'YOU: ' : 'VILLAIN: ') + text;
             if (id) div.id = id;
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -129,16 +137,17 @@
 
         // --- SPEAKER CODE ---
         function speakText(text) {
-            voiceSynthesizer.cancel(); // Stop talking if already talking
+            voiceSynthesizer.cancel(); 
             const utterance = new SpeechSynthesisUtterance(text);
             
             const voices = voiceSynthesizer.getVoices();
-            const britishVoice = voices.find(v => v.name.includes('UK English Male') || v.lang === 'en-GB' || v.name.includes('Google UK English Male'));
+            // Look for a deep/robotic voice
+            const villainVoice = voices.find(v => v.name.includes('Google UK English Male') || v.name.includes('Microsoft David') || v.lang === 'en-GB');
             
-            if (britishVoice) utterance.voice = britishVoice;
+            if (villainVoice) utterance.voice = villainVoice;
             
-            utterance.pitch = 0.8; // Deep, robotic pitch
-            utterance.rate = 1.0; 
+            utterance.pitch = 0.5; // Very deep pitch for Villain AI
+            utterance.rate = 0.9;  // Slightly slower, menacing speed
             voiceSynthesizer.speak(utterance);
         }
 
